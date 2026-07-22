@@ -11,7 +11,6 @@ import express, {
   type Request,
   type Response,
 } from "express";
-import helmet from "helmet";
 import compression from "compression";
 import swaggerUi from "swagger-ui-express";
 import { config } from "./config/env";
@@ -26,6 +25,7 @@ import { requestMetricsMiddleware } from "./middleware/metrics";
 import { errorHandler, AppError } from "./middleware/errorHandler";
 import { standardRateLimiter } from "./middleware/rateLimiter";
 import { userAgentFilter } from "./middleware/userAgentFilter";
+import { securityHeadersMiddleware } from "./middleware/securityHeaders";
 import { swaggerSpec } from "./config/swagger";
 import routes from "./routes";
 import webhookRoutes from "./routes/webhookRoutes";
@@ -121,27 +121,7 @@ function blockGraphQLQueries(req: Request, _res: Response, next: NextFunction): 
 }
 
 // Security middleware
-app.use(
-  helmet({
-    // Enable DNS prefetch when a CDN is configured so browsers can resolve
-    // the CDN domain early, avoiding extra round-trip latency on every load.
-    // When no CDN is in use, keep it off (default) to prevent information leakage.
-    dnsPrefetchControl: { allow: !!config.cdnUrl },
-    crossOriginOpenerPolicy: { policy: "same-origin" },
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-    },
-    contentSecurityPolicy: {
-      directives: {
-        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        "img-src": ["'self'", "data:", "https://validator.swagger.io"],
-        "script-src": ["'self'"],
-        "style-src": ["'self'", "https:"],
-      },
-    },
-  }),
-);
+app.use(securityHeadersMiddleware);
 app.use(corsMiddleware);
 
 // Block GraphQL attempts early in the middleware chain
