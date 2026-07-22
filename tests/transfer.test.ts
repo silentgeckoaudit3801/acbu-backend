@@ -53,6 +53,7 @@ jest.mock("../src/config/logger", () => ({
 import { prisma } from "../src/config/database";
 import { createTransfer } from "../src/services/transfer/transferService";
 import { stellarClient } from "../src/services/stellar/client";
+import { logFinancialEvent } from "../src/config/logger";
 
 const mockUser = prisma.user as jest.Mocked<typeof prisma.user>;
 const mockTx = prisma.transaction as jest.Mocked<typeof prisma.transaction>;
@@ -347,6 +348,26 @@ describe("createTransfer", () => {
     expect(createCall.data.acbuAmount.toString()).toBe("1000000");
   });
 
+  it("logs transfer amounts with full 7-decimal precision", async () => {
+    (mockUser.findUnique as jest.Mock)
+      .mockResolvedValueOnce(verifiedSender)
+      .mockResolvedValueOnce({ stellarAddress: RECIPIENT_STELLAR });
+    (mockUser.findFirst as jest.Mock).mockResolvedValue(bobUser);
+    (mockTx.create as jest.Mock).mockResolvedValue({ id: "tx-log-precision" });
+
+    await createTransfer({
+      senderUserId: SENDER_ID,
+      to: "@bob",
+      amountAcbu: "1.1234567",
+    });
+
+    expect(logFinancialEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: "transfer.initiated",
+        amount: 11234567,
+      }),
+    );
+  });
   // ── raw Stellar address as recipient ─────────────────────────────────────────
 
   it("accepts raw Stellar address as recipient", async () => {
