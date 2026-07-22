@@ -128,6 +128,7 @@ import {
   verifyPaystackSignature,
   handleFlutterwaveWebhook,
   handlePaystackWebhook,
+  handleBillsWebhook,
 } from "./webhookController";
 import { prisma } from "../config/database";
 
@@ -387,6 +388,37 @@ describe("webhookController", () => {
     });
   });
 
+  // -- handleBillsWebhook -----------------------------------------------------
+
+  describe("handleBillsWebhook", () => {
+    const expiredTimestamp = () => String(Math.floor(Date.now() / 1000) - 600);
+
+    it("returns 401 when x-bills-timestamp is expired", async () => {
+      const res = makeRes();
+      const next = makeNext();
+
+      await handleBillsWebhook(
+        {
+          headers: { "x-bills-timestamp": expiredTimestamp() },
+          params: { provider: "simulated" },
+          body: {
+            transaction_id: "tx-1",
+            provider_reference: "ref-1",
+            status: "completed",
+            amount: 100,
+          },
+        } as unknown as Request,
+        res,
+        next,
+      );
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: "Webhook timestamp invalid or expired" }),
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+  });
   // ── handlePaystackWebhook ──────────────────────────────────────────────────
 
   describe("handlePaystackWebhook", () => {
