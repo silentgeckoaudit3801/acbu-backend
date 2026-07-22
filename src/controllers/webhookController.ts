@@ -52,7 +52,19 @@ function isTimestampValid(raw: string | undefined): boolean {
   if (!Number.isFinite(eventS)) return false;
   return Math.abs(nowS - eventS) <= WEBHOOK_TIMESTAMP_TOLERANCE_S;
 }
-
+function rejectInvalidWebhookTimestamp(
+  provider: string,
+  timestamp: string | undefined,
+  res: Response,
+): boolean {
+  if (isTimestampValid(timestamp)) return false;
+  logger.warn(`${provider} webhook timestamp invalid or outside tolerance window`, {
+    timestamp,
+    toleranceS: WEBHOOK_TIMESTAMP_TOLERANCE_S,
+  });
+  res.status(401).json({ error: "Webhook timestamp invalid or expired" });
+  return true;
+}
 if (bypassEnabled) {
   logger.warn(
     "WEBHOOK_SIGNATURE_BYPASS is enabled — webhook signature verification " +
@@ -103,14 +115,7 @@ export function verifyFlutterwaveSignature(
   // #390: Reject requests whose timestamp falls outside the tolerance window.
   // Flutterwave sends the event time in the x-flw-timestamp header (Unix seconds).
   const timestamp = req.headers["x-flw-timestamp"] as string | undefined;
-  if (!isTimestampValid(timestamp)) {
-    logger.warn("Flutterwave webhook timestamp invalid or outside tolerance window", {
-      timestamp,
-      toleranceS: WEBHOOK_TIMESTAMP_TOLERANCE_S,
-    });
-    res.status(401).json({ error: "Webhook timestamp invalid or expired" });
-    return;
-  }
+  if (rejectInvalidWebhookTimestamp("Flutterwave", timestamp, res)) return;
 
   const received = req.headers["verif-hash"] as string | undefined;
   if (!received) {
@@ -194,14 +199,7 @@ export function verifyPaystackSignature(
   // #390: Reject requests whose timestamp falls outside the tolerance window.
   // Paystack sends the event time in the x-paystack-timestamp header (Unix seconds).
   const timestamp = req.headers["x-paystack-timestamp"] as string | undefined;
-  if (!isTimestampValid(timestamp)) {
-    logger.warn("Paystack webhook timestamp invalid or outside tolerance window", {
-      timestamp,
-      toleranceS: WEBHOOK_TIMESTAMP_TOLERANCE_S,
-    });
-    res.status(401).json({ error: "Webhook timestamp invalid or expired" });
-    return;
-  }
+  if (rejectInvalidWebhookTimestamp("Paystack", timestamp, res)) return;
 
   const received = req.headers["x-paystack-signature"] as string | undefined;
   if (!received) {
@@ -414,6 +412,8 @@ export async function handleBillsWebhook(
     if (!provider) {
       throw new AppError("Bills webhook provider is required", 400);
     }
+    const timestamp = req.headers["x-bills-timestamp"] as string | undefined;
+    if (rejectInvalidWebhookTimestamp("Bills", timestamp, res)) return;
 
     const body = (req.body || {}) as Record<string, unknown>;
     const transactionId = String(
