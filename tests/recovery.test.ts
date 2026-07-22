@@ -4,6 +4,7 @@ import { prisma } from "../src/config/database";
 import { generateApiKey } from "../src/middleware/auth";
 import { signChallengeToken, verifyChallengeToken } from "../src/utils/jwt";
 import { getRabbitMQChannel } from "../src/config/rabbitmq";
+import { logger } from "../src/config/logger";
 import {
   checkRecoveryRateLimit,
   recordRecoveryAttempt,
@@ -86,6 +87,7 @@ const mockGenerateApiKey = generateApiKey as jest.Mock;
 const mockSignChallengeToken = signChallengeToken as jest.Mock;
 const mockVerifyChallengeToken = verifyChallengeToken as jest.Mock;
 const mockGetRabbitMQChannel = getRabbitMQChannel as jest.Mock;
+const mockLoggerWarn = logger.warn as jest.Mock;
 const mockCheckRecoveryRateLimit = checkRecoveryRateLimit as jest.Mock;
 const mockRecordRecoveryAttempt = recordRecoveryAttempt as jest.Mock;
 const mockVerifyDevice = verifyDevice as jest.Mock;
@@ -151,6 +153,23 @@ describe("recoveryService", () => {
       expect(mockSignChallengeToken).toHaveBeenCalledWith("user-1");
     });
 
+
+    it("masks phone identifiers when logging missing recovery users", async () => {
+      mockPrismaUserFindFirst.mockResolvedValue(null);
+
+      await expect(
+        unlockApp({
+          identifier: "+15551234567",
+          passcode: "1234",
+          deviceFingerprint: { os: "Android", browser: "Chrome" } as any,
+        }),
+      ).rejects.toThrow("User not found or recovery not enabled");
+
+      expect(mockLoggerWarn).toHaveBeenCalledWith(
+        "Recovery: user not found or no passcode set",
+        { identifier: "***" },
+      );
+    });
     it("rejects invalid passcode", async () => {
       mockPrismaUserFindFirst.mockResolvedValue({
         id: "user-1",
