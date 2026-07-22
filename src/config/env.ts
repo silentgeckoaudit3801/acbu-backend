@@ -23,6 +23,9 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(10),
+  RATE_LIMIT_FALLBACK_MAX_REQUESTS: z.coerce.number().int().positive().default(20),
+  RATE_LIMIT_CIRCUIT_BREAKER_THRESHOLD: z.coerce.number().int().positive().default(5),
+  RATE_LIMIT_CIRCUIT_BREAKER_COOLDOWN_MS: z.coerce.number().int().positive().default(60000),
   MAX_SIGNIN_ATTEMPTS: z.coerce.number().int().positive().default(5),
   SIGNIN_LOCKOUT_DURATION_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
   PII_ENCRYPTION_KEY: z
@@ -132,15 +135,9 @@ export const config = {
   signinLockoutDurationMs: env.SIGNIN_LOCKOUT_DURATION_MS,
 
   // Rate Limiting Fallback (during cache outages)
-  rateLimitFallbackMaxRequests: parseInt(process.env.RATE_LIMIT_FALLBACK_MAX_REQUESTS || "20", 10),
-  rateLimitCircuitBreakerThreshold: parseInt(
-    process.env.RATE_LIMIT_CIRCUIT_BREAKER_THRESHOLD || "5",
-    10,
-  ),
-  rateLimitCircuitBreakerCooldownMs: parseInt(
-    process.env.RATE_LIMIT_CIRCUIT_BREAKER_COOLDOWN_MS || "60000",
-    10,
-  ),
+  rateLimitFallbackMaxRequests: env.RATE_LIMIT_FALLBACK_MAX_REQUESTS,
+  rateLimitCircuitBreakerThreshold: env.RATE_LIMIT_CIRCUIT_BREAKER_THRESHOLD,
+  rateLimitCircuitBreakerCooldownMs: env.RATE_LIMIT_CIRCUIT_BREAKER_COOLDOWN_MS,
 
   // Redis cache (Sentinel / standalone)
   redis: {
