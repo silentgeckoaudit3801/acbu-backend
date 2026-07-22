@@ -120,6 +120,7 @@ jest.mock("../services/limits/limitsService", () => ({
 }));
 
 jest.mock("../services/bills", () => ({
+  isBillsProviderConfigured: jest.fn((provider: string) => provider === "simulated"),
   reconcileBillsWebhook: jest.fn(),
 }));
 
@@ -128,6 +129,7 @@ import {
   verifyPaystackSignature,
   handleFlutterwaveWebhook,
   handlePaystackWebhook,
+  handleBillsWebhook,
 } from "./webhookController";
 import { prisma } from "../config/database";
 
@@ -387,6 +389,28 @@ describe("webhookController", () => {
     });
   });
 
+  // -- handleBillsWebhook -----------------------------------------------------
+
+  describe("handleBillsWebhook", () => {
+    it("rejects unknown bills webhook providers before reconciliation", async () => {
+      const next = makeNext();
+      await handleBillsWebhook(
+        {
+          params: { provider: "unknown-provider" },
+          body: {
+            transaction_id: "tx-1",
+            provider_reference: "ref-1",
+            status: "completed",
+            amount: 100,
+          },
+        } as unknown as Request,
+        makeRes(),
+        next,
+      );
+
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 400 }));
+    });
+  });
   // ── handlePaystackWebhook ──────────────────────────────────────────────────
 
   describe("handlePaystackWebhook", () => {
