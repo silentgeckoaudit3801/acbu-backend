@@ -252,12 +252,8 @@ if (config.nodeEnv !== "production") {
   app.get("/api-docs.json", (_req, res) => {
     res.json(swaggerSpec);
   });
-} else {
-  // In production, redirect GraphQL-like paths to 404 explicitly
-  app.use(["/graphql", "/graphiql", "/playground", "/graphql/playground"], (req, res) => {
-    res.status(404).json({ error: { code: "NOT_FOUND", message: "Not found" } });
-  });
 }
+
 
 // Routes
 app.use(`/api/${config.apiVersion}`, routes);
