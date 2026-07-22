@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Request, Response, NextFunction } from "express";
 import { config } from "../config/env";
 import { AppError } from "./errorHandler";
@@ -18,9 +19,16 @@ export function requireAdminApiKey(
     return;
   }
   const provided = req.headers["x-admin-key"];
-  if (!provided || provided !== adminApiKey) {
+  if (typeof provided !== "string" || !timingSafeEqual(provided, adminApiKey)) {
     next(new AppError("Unauthorized", 401));
     return;
   }
   next();
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  const aBuffer = Buffer.from(a);
+  const bBuffer = Buffer.from(b);
+  if (aBuffer.length !== bBuffer.length) return false;
+  return crypto.timingSafeEqual(aBuffer, bBuffer);
 }
