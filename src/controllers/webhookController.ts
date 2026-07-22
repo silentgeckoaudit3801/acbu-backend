@@ -19,7 +19,10 @@ import { logger, logFinancialEvent } from "../config/logger";
 import { prisma } from "../config/database";
 import { AppError } from "../middleware/errorHandler";
 import { ErrorCodes } from "../types/errorCodes";
-import { reconcileBillsWebhook } from "../services/bills";
+import {
+  isBillsProviderConfigured,
+  reconcileBillsWebhook,
+} from "../services/bills";
 import type { FinancialEventStatus } from "../types/logging";
 
 // ── Dev/stage mock bypass ────────────────────────────────────────────────────
@@ -413,6 +416,9 @@ export async function handleBillsWebhook(
       .toLowerCase();
     if (!provider) {
       throw new AppError("Bills webhook provider is required", 400);
+    }
+    if (!isBillsProviderConfigured(provider)) {
+      throw new AppError(`Bills webhook provider '${provider}' is not configured`, 400);
     }
 
     const body = (req.body || {}) as Record<string, unknown>;
