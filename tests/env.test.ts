@@ -47,6 +47,18 @@ describe("env validation", () => {
     expect(() => require("../src/config/env")).toThrow(/LOG_LEVEL/);
   });
 
+
+  it("coerces rate-limit fallback config through Zod", () => {
+    process.env.RATE_LIMIT_FALLBACK_MAX_REQUESTS = "33";
+    process.env.RATE_LIMIT_CIRCUIT_BREAKER_THRESHOLD = "7";
+    process.env.RATE_LIMIT_CIRCUIT_BREAKER_COOLDOWN_MS = "45000";
+
+    const { config } = require("../src/config/env");
+
+    expect(config.rateLimitFallbackMaxRequests).toBe(33);
+    expect(config.rateLimitCircuitBreakerThreshold).toBe(7);
+    expect(config.rateLimitCircuitBreakerCooldownMs).toBe(45000);
+  });
   it("throws when CORS_ORIGIN contains wildcard", () => {
     process.env.CORS_ORIGIN = "*";
     expect(() => {
