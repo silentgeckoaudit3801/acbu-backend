@@ -1,5 +1,6 @@
 export {
   getBillsCatalog,
+  isBillsProviderConfigured,
   payBill,
   reconcileBillsWebhook,
   refundBillPayment,
