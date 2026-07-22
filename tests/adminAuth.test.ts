@@ -8,7 +8,7 @@ jest.mock("../src/config/logger", () => ({ logger: { error: jest.fn(), warn: jes
 
 import { requireAdminApiKey } from "../src/middleware/adminAuth";
 
-function makeReq(adminKey?: string): Request {
+function makeReq(adminKey?: string | string[]): Request {
   return { headers: adminKey ? { "x-admin-key": adminKey } : {} } as Request;
 }
 
@@ -40,6 +40,12 @@ describe("requireAdminApiKey", () => {
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 401 }));
   });
 
+  it("returns 401 when x-admin-key header is repeated", () => {
+    mockConfig.adminApiKey = "secret-key";
+    const next = makeNext();
+    requireAdminApiKey(makeReq(["secret-key", "other-key"]), {} as Response, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 401 }));
+  });
   it("calls next() with no error when key matches", () => {
     mockConfig.adminApiKey = "secret-key";
     const next = makeNext();
