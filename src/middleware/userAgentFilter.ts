@@ -27,7 +27,7 @@ const DEFAULT_BLOCKED_PATTERNS: RegExp[] = [
   /python-requests/,
   /go-http-client/,
   /libwww-perl/,
-  /curl\/[0-9]/,   // bare curl (not curl wrapped in a real UA)
+  /curl\/\d+(?:\.\d+)*/, // bare curl (not curl wrapped in a real UA)
   /wget\//,
   /scrapy/,
   /java\/[0-9]/,   // raw Java HttpURLConnection
