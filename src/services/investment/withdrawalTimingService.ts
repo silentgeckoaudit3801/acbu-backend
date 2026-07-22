@@ -54,7 +54,7 @@ export async function getInvestmentWithdrawalTiming(
       SELECT
         trusted_now AS "requestedAt",
         trusted_now + ${Prisma.sql`make_interval(hours => ${WITHDRAWAL_DELAY_HOURS})`} AS "availableAt",
-        EXTRACT(DAY FROM (trusted_now AT TIME ZONE ${Prisma.raw(`'${businessTimeZone.replace(/'/g, "''")}'`)}))::int AS "businessCalendarDay"
+        EXTRACT(DAY FROM (trusted_now AT TIME ZONE ${businessTimeZone}))::int AS "businessCalendarDay"
       FROM trusted_clock
     `,
   );
