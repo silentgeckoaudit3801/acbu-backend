@@ -33,6 +33,10 @@ function getConfiguredBillsProviderId(): string {
     .toLowerCase();
 }
 
+export function isBillsProviderConfigured(providerId: string): boolean {
+  return Boolean(PROVIDERS[providerId.trim().toLowerCase()]);
+}
+
 function getBillsProvider(
   providerId = getConfiguredBillsProviderId(),
 ): BillsPartnerAdapter {
